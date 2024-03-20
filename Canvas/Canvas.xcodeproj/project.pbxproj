@@ -57,11 +57,19 @@
 				0AC6AC502BA8D25600506F4A /* AppDelegate.swift */,
 				0AC6AC522BA8D25600506F4A /* SceneDelegate.swift */,
 				0AC6AC542BA8D25600506F4A /* ViewController.swift */,
-				0AC6AC592BA8D25700506F4A /* Assets.xcassets */,
+				0AC6AC652BAB7E9A00506F4A /* Assets */,
 				0AC6AC5B2BA8D25700506F4A /* LaunchScreen.storyboard */,
 				0AC6AC5E2BA8D25700506F4A /* Info.plist */,
 			);
 			path = Canvas;
+			sourceTree = "<group>";
+		};
+		0AC6AC652BAB7E9A00506F4A /* Assets */ = {
+			isa = PBXGroup;
+			children = (
+				0AC6AC592BA8D25700506F4A /* Assets.xcassets */,
+			);
+			path = Assets;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
