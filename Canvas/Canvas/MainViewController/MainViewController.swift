@@ -1,5 +1,5 @@
 //
-//  ViewController.swift
+//  MainViewController.swift
 //  Canvas
 //
 //  Created by Robin Hellgren on 18/03/2024.
@@ -7,7 +7,7 @@
 
 import UIKit
 
-final class ViewController: UIViewController {
+final class MainViewController: UIViewController, UIGestureRecognizerDelegate {
     
     // MARK: - Subviews
 
@@ -37,13 +37,26 @@ final class ViewController: UIViewController {
     private lazy var addButton: UIButton = {
         let button = UIButton()
         button.translatesAutoresizingMaskIntoConstraints = false
-        button.setTitle("+", for: .normal)
+        button.setTitle(Constants.Button.title, for: .normal)
         button.titleLabel?.font = Constants.Button.font
         button.backgroundColor = Constants.Button.backgroundColor
         button.layer.cornerRadius = Constants.Button.cornerRadius
         return button
     }()
     
+    private var overlays: [OverlayImageView] = []
+    private var currentFocus: OverlayImageView? {
+        didSet {
+            overlays.forEach { $0.isUserInteractionEnabled = false }
+            if let currentFocus {
+                scrollView.isScrollEnabled = false
+                currentFocus.isUserInteractionEnabled = true
+            } else {
+                scrollView.isScrollEnabled = true
+            }
+        }
+    }
+
     // MARK: - Lifecycle
 
     override func viewDidLoad() {
@@ -55,7 +68,9 @@ final class ViewController: UIViewController {
 
     private func make() {
         makeInstall()
+        makeInteractions()
         makeConstraints()
+        makeStyle()
     }
     
     private func makeInstall() {
@@ -63,8 +78,11 @@ final class ViewController: UIViewController {
         view.addSubview(addButton)
         scrollView.addSubview(contentView)
         panels.forEach { contentView.addSubview($0) }
-        
+    }
+    
+    private func makeInteractions() {
         addButton.addTarget(self, action: #selector(addButtonPressed), for: .touchUpInside)
+        scrollView.addGestureRecognizer(UITapGestureRecognizer(target: self, action: #selector(scrollViewTapped)))
     }
     
     private func makeConstraints() {
@@ -123,18 +141,74 @@ final class ViewController: UIViewController {
         ] + panelConstraints)
     }
     
+    private func makeStyle() {
+        view.backgroundColor = Constants.backgroundColor
+    }
+    
     // MARK: - Actions
 
     @objc
-    private func addButtonPressed(_ sender: UIButton) {
-        // TODO: Present sheet with overlays
+    private func addButtonPressed(
+        _ sender: UIButton
+    ) {
+        let overlaysViewController = OverlaysCollectionViewController(
+            selectionCompletion: { [weak self] image in
+                self?.addOverlay(for: image)
+            }
+        )
+        let navigationController = UINavigationController(rootViewController: overlaysViewController)
+        navigationController.modalPresentationStyle = .pageSheet
+        present(navigationController, animated: true)
+    }
+    
+    // MARK: - Adding overlay
+    
+    private func addOverlay(
+        for image: UIImage
+    ) {
+        let imageView = OverlayImageView(image: image)
+        imageView.frame = CGRect(
+            origin: CGPoint(
+                x: Constants.screenCenter + scrollView.contentOffset.x - (Constants.Overlays.size.width / 2),
+                y: contentView.center.y - (Constants.Overlays.size.height / 2)),
+            size: Constants.Overlays.size)
+
+        contentView.addSubview(imageView)
+        overlays.append(imageView)
+        currentFocus = imageView
+    }
+    
+    // MARK: - Touches
+    
+    override func touchesBegan(
+        _ touches: Set<UITouch>,
+        with event: UIEvent?
+    ) {
+        super.touchesBegan(touches, with: event)
+        // Remove focus if touch events outside the scrollview is triggered
+        currentFocus = nil
+    }
+    
+    @objc
+    func scrollViewTapped(_ recogniser: UIGestureRecognizer) {
+        let location = recogniser.location(in: scrollView)
+        if let overlay = overlays.first(where: { $0.frame.contains(location) }) {
+            // OverlayImageView tapped, swap focus
+            currentFocus = overlay
+        } else {
+            // Scrollview tapped, remove focus
+            currentFocus = nil
+        }
     }
 }
 
 // MARK: - Constants
 
-extension ViewController {
+extension MainViewController {
     struct Constants {
+        static let backgroundColor: UIColor = .black
+        static let screenCenter = UIScreen.main.bounds.width / 2
+        
         struct Panels {
             static let width: CGFloat = 250
             static let height: CGFloat = 250
@@ -144,9 +218,13 @@ extension ViewController {
         struct Button {
             static let width: CGFloat = 200
             static let height: CGFloat = 50
-            static let cornerRadius: CGFloat = 20
-            static let backgroundColor: UIColor = .darkGray
+            static let title = "+"
             static let font: UIFont = .preferredFont(forTextStyle: .largeTitle)
+            static let backgroundColor: UIColor = .darkGray
+            static let cornerRadius: CGFloat = 20
+        }
+        struct Overlays {
+            static let size = CGSize(width: 100, height: 50)
         }
     }
 }

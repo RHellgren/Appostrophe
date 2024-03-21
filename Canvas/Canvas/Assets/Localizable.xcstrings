@@ -1,0 +1,18 @@
+{
+  "sourceLanguage" : "en",
+  "strings" : {
+    "OK" : {
+
+    },
+    "Overlays" : {
+
+    },
+    "Something went wrong" : {
+
+    },
+    "Unable to fetch overlays" : {
+
+    }
+  },
+  "version" : "1.0"
+}
