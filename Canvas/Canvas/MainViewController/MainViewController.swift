@@ -33,27 +33,18 @@ final class MainViewController: UIViewController, UIGestureRecognizerDelegate {
         }
         return panels
     }()
-    private lazy var horizontalGuidelines: [UIView] = {
-        let lines = [
-            UIView(),// Top
-            UIView(),// Center
-            UIView()// Bottom
+    private lazy var panelsHorizontalGuidelines: [GuidelineView] = {
+        [
+            GuidelineView(),// Top
+            GuidelineView(),// Center
+            GuidelineView()// Bottom
         ]
-        lines.forEach {
-            $0.translatesAutoresizingMaskIntoConstraints = false
-            $0.backgroundColor = Constants.Guidelines.backgroundColor
-        }
-        return lines
     }()
-    private lazy var verticalGuidelines: [UIView] = {
+    private lazy var panelsVerticalGuidelines: [GuidelineView] = {
         // Each Panel has a leading, center and trailing guideline
-        var lines: [UIView] = []
+        var lines: [GuidelineView] = []
         for _ in 0..<(Constants.Panels.count * 3) {
-            lines.append(UIView())
-        }
-        lines.forEach {
-            $0.translatesAutoresizingMaskIntoConstraints = false
-            $0.backgroundColor = Constants.Guidelines.backgroundColor
+            lines.append(GuidelineView())
         }
         return lines
     }()
@@ -67,7 +58,11 @@ final class MainViewController: UIViewController, UIGestureRecognizerDelegate {
         return button
     }()
     
+    // MARK: - Variables
+
     private var overlays: [OverlayImageView] = []
+    private var overlaysHorizontalGuidelines: [OverlayImageView: [GuidelineView]] = [:]
+    private var overlaysVerticalGuidelines: [OverlayImageView: [GuidelineView]] = [:]
     private var currentFocus: OverlayImageView? {
         didSet {
             overlays.forEach { $0.isUserInteractionEnabled = false }
@@ -78,6 +73,16 @@ final class MainViewController: UIViewController, UIGestureRecognizerDelegate {
                 scrollView.isScrollEnabled = true
             }
         }
+    }
+    
+    private var allHorizontalGuidelines: [GuidelineView] {
+        panelsHorizontalGuidelines + Array(overlaysHorizontalGuidelines.values).reduce([], +)
+    }
+    private var allVerticalGuidelines: [GuidelineView] {
+        panelsVerticalGuidelines + Array(overlaysVerticalGuidelines.values).reduce([], +)
+    }
+    private var allGuidelines: [GuidelineView] {
+       allHorizontalGuidelines + allVerticalGuidelines
     }
     
     private let generator = UIImpactFeedbackGenerator(style: .medium)
@@ -96,8 +101,6 @@ final class MainViewController: UIViewController, UIGestureRecognizerDelegate {
         makeInteractions()
         makeConstraints()
         makeStyle()
-        
-        bringGuidelinesToFront()
     }
     
     private func makeInstall() {
@@ -105,8 +108,8 @@ final class MainViewController: UIViewController, UIGestureRecognizerDelegate {
         view.addSubview(addButton)
         scrollView.addSubview(contentView)
         panels.forEach { contentView.addSubview($0) }
-        horizontalGuidelines.forEach { contentView.addSubview($0) }
-        verticalGuidelines.forEach { contentView.addSubview($0) }
+        panelsHorizontalGuidelines.forEach { contentView.addSubview($0) }
+        panelsVerticalGuidelines.forEach { contentView.addSubview($0) }
     }
     
     private func makeInteractions() {
@@ -168,13 +171,13 @@ final class MainViewController: UIViewController, UIGestureRecognizerDelegate {
         
         // Layout horizontalGuidelines
         constraints.append(contentsOf: [
-            horizontalGuidelines[0].topAnchor.constraint(
+            panelsHorizontalGuidelines[0].topAnchor.constraint(
                 equalTo: contentView.topAnchor),
-            horizontalGuidelines[1].centerYAnchor.constraint(
+            panelsHorizontalGuidelines[1].centerYAnchor.constraint(
                 equalTo: contentView.centerYAnchor),
-            horizontalGuidelines[2].bottomAnchor.constraint(
+            panelsHorizontalGuidelines[2].bottomAnchor.constraint(
                 equalTo: contentView.bottomAnchor),
-        ] + horizontalGuidelines.map {[
+        ] + panelsHorizontalGuidelines.map {[
             $0.leadingAnchor.constraint(
                 equalTo: contentView.leadingAnchor),
             $0.trailingAnchor.constraint(
@@ -184,7 +187,7 @@ final class MainViewController: UIViewController, UIGestureRecognizerDelegate {
         ]}.reduce([], +))
         
         // Layout verticalGuidelines
-        constraints.append(contentsOf: verticalGuidelines
+        constraints.append(contentsOf: panelsVerticalGuidelines
             .map {[
                 $0.topAnchor.constraint(
                     equalTo: contentView.topAnchor),
@@ -193,7 +196,7 @@ final class MainViewController: UIViewController, UIGestureRecognizerDelegate {
                 $0.widthAnchor.constraint(
                     equalToConstant: Constants.Guidelines.lineHeight)
             ]}.reduce([], +))
-        verticalGuidelines
+        panelsVerticalGuidelines
             .chunked(into: Constants.Panels.count)
             .enumerated()
             .forEach { (index, chunk) in
@@ -222,15 +225,8 @@ final class MainViewController: UIViewController, UIGestureRecognizerDelegate {
         NSLayoutConstraint.activate(constraints)
     }
     
-    private func bringGuidelinesToFront() {
-        horizontalGuidelines.forEach { $0.layer.zPosition = .greatestFiniteMagnitude }
-        verticalGuidelines.forEach { $0.layer.zPosition = .greatestFiniteMagnitude }
-    }
-    
     private func makeStyle() {
         view.backgroundColor = Constants.backgroundColor
-        horizontalGuidelines.forEach { $0.isHidden = true }
-        verticalGuidelines.forEach { $0.isHidden = true }
     }
     
     // MARK: - Actions
@@ -254,7 +250,23 @@ final class MainViewController: UIViewController, UIGestureRecognizerDelegate {
     private func addOverlay(
         for image: UIImage
     ) {
-        let imageView = OverlayImageView(image: image)
+        // Create and add new OverlayImageView
+        let imageView = overlay(for: image)
+        contentView.addSubview(imageView)
+        overlays.append(imageView)
+        
+        // Create and add associated guidelines
+        overlaysHorizontalGuidelines[imageView] = horizontalGuidelines(for: imageView)
+        overlaysVerticalGuidelines[imageView] = verticalGuidelines(for: imageView)
+
+        // Focus is shifted to new overlay
+        currentFocus = imageView
+    }
+    
+    private func overlay(
+        for image: UIImage
+    ) -> OverlayImageView {
+        let overlay = OverlayImageView(image: image)
         let size = CGSize(
             width: image.size.width * Constants.Overlays.scale,
             height: image.size.height * Constants.Overlays.scale
@@ -263,15 +275,70 @@ final class MainViewController: UIViewController, UIGestureRecognizerDelegate {
             x: Constants.screenCenter + scrollView.contentOffset.x - (size.width / 2),
             y: contentView.center.y - (size.height / 2)
         )
-        imageView.frame = CGRect(origin: origin, size: size)
-        imageView.addGestureRecognizer(UIPanGestureRecognizer(target: self, action: #selector(handlePanGesture)))
-
-        contentView.addSubview(imageView)
-        overlays.append(imageView)
-        currentFocus = imageView
+        overlay.frame = CGRect(origin: origin, size: size)
+        overlay.addGestureRecognizer(UIPanGestureRecognizer(target: self, action: #selector(handlePanGesture)))
+        return overlay
     }
     
-    // MARK: - Touches
+    private func horizontalGuidelines(
+        for overlay: OverlayImageView
+    ) -> [GuidelineView] {
+        let top = GuidelineView()
+        let bottom = GuidelineView()
+        contentView.addSubview(top)
+        contentView.addSubview(bottom)
+        NSLayoutConstraint.activate([
+            top.leadingAnchor.constraint(
+                equalTo: contentView.leadingAnchor),
+            top.trailingAnchor.constraint(
+                equalTo: contentView.trailingAnchor),
+            top.heightAnchor.constraint(
+                equalToConstant: Constants.Guidelines.lineHeight),
+            top.bottomAnchor.constraint(
+                equalTo: overlay.topAnchor),
+            
+            bottom.leadingAnchor.constraint(
+                equalTo: contentView.leadingAnchor),
+            bottom.trailingAnchor.constraint(
+                equalTo: contentView.trailingAnchor),
+            bottom.heightAnchor.constraint(
+                equalToConstant: Constants.Guidelines.lineHeight),
+            bottom.topAnchor.constraint(
+                equalTo: overlay.bottomAnchor)
+        ])
+        return [top, bottom]
+    }
+
+    private func verticalGuidelines(
+        for overlay: OverlayImageView
+    ) -> [GuidelineView] {
+        let leading = GuidelineView()
+        let trailing = GuidelineView()
+        contentView.addSubview(leading)
+        contentView.addSubview(trailing)
+        NSLayoutConstraint.activate([
+            leading.topAnchor.constraint(
+                equalTo: contentView.topAnchor),
+            leading.bottomAnchor.constraint(
+                equalTo: contentView.bottomAnchor),
+            leading.widthAnchor.constraint(
+                equalToConstant: Constants.Guidelines.lineHeight),
+            leading.trailingAnchor.constraint(
+                equalTo: overlay.leadingAnchor),
+            
+            trailing.topAnchor.constraint(
+                equalTo: contentView.topAnchor),
+            trailing.bottomAnchor.constraint(
+                equalTo: contentView.bottomAnchor),
+            trailing.widthAnchor.constraint(
+                equalToConstant: Constants.Guidelines.lineHeight),
+            trailing.leadingAnchor.constraint(
+                equalTo: overlay.trailingAnchor)
+        ])
+        return [leading, trailing]
+    }
+    
+    // MARK: - Handle interaction
     
     override func touchesBegan(
         _ touches: Set<UITouch>,
@@ -286,15 +353,16 @@ final class MainViewController: UIViewController, UIGestureRecognizerDelegate {
     @objc
     func handlePanGesture(_ recogniser: UIPanGestureRecognizer) {
         guard let overlay = currentFocus,
-              overlay == recogniser.view
+              overlay == recogniser.view,
+              let overlayHorizontalGuidelines = overlaysHorizontalGuidelines[overlay],
+              let overlayVerticalGuidelines = overlaysVerticalGuidelines[overlay]
         else {
             return
         }
-        
+
         // Hide any visible guidelines once pan gesture has ended
         guard recogniser.state != .ended else {
-            (horizontalGuidelines + verticalGuidelines)
-                .forEach { $0.isHidden = true }
+            allGuidelines.forEach { $0.isHidden = true }
             return
         }
 
@@ -313,9 +381,15 @@ final class MainViewController: UIViewController, UIGestureRecognizerDelegate {
         
         // Used for highlighting guidelines
         var snappedGuidelines: [UIView] = []
+        
+        // Filter out the overlays own guidelines
+        let relevantHorizontalGuidelines = allHorizontalGuidelines
+            .filter { !overlayHorizontalGuidelines.contains($0) }
+        let relevantVerticalGuidelines = allVerticalGuidelines
+            .filter { !overlayVerticalGuidelines.contains($0) }
 
         // Snap to top edge, if needed
-        if let topGuideline = horizontalGuidelines.first(
+        if let topGuideline = relevantHorizontalGuidelines.first(
             where: { abs(overlayTop - $0.frame.maxY) < Constants.Overlays.snapLimit }
         ) {
             overlayY = topGuideline.frame.maxY
@@ -323,7 +397,7 @@ final class MainViewController: UIViewController, UIGestureRecognizerDelegate {
         }
         
         // Snap to bottom edge, if needed
-        if let bottomGuideline = horizontalGuidelines.first(
+        if let bottomGuideline = relevantHorizontalGuidelines.first(
             where: { abs(overlayBottom - $0.frame.minY) < Constants.Overlays.snapLimit }
         ) {
             overlayY = bottomGuideline.frame.minY - overlay.frame.height
@@ -331,7 +405,7 @@ final class MainViewController: UIViewController, UIGestureRecognizerDelegate {
         }
         
         // Snap to horizontal center, if needed
-        if let centerGuideline = horizontalGuidelines.first(
+        if let centerGuideline = panelsHorizontalGuidelines.first(
             where: { abs(overlayCenterY - $0.frame.midY) < Constants.Overlays.snapLimit }
         ) {
             overlayY = centerGuideline.frame.midY - (overlay.frame.height / 2)
@@ -339,7 +413,7 @@ final class MainViewController: UIViewController, UIGestureRecognizerDelegate {
         }
         
         // Snap to leading edge, if needed
-        if let leadingGuideline = verticalGuidelines.first(
+        if let leadingGuideline = relevantVerticalGuidelines.first(
             where: { abs(overlayLeading - $0.frame.maxX) < Constants.Overlays.snapLimit }
         ) {
             overlayX = leadingGuideline.frame.maxX
@@ -347,7 +421,7 @@ final class MainViewController: UIViewController, UIGestureRecognizerDelegate {
         }
         
         // Snap to trailing edge, if needed
-        if let trailingGuideline = verticalGuidelines.first(
+        if let trailingGuideline = relevantVerticalGuidelines.first(
             where: { abs(overlayTrailing - $0.frame.minX) < Constants.Overlays.snapLimit }
         ) {
             overlayX = trailingGuideline.frame.minX - overlay.frame.width
@@ -355,7 +429,7 @@ final class MainViewController: UIViewController, UIGestureRecognizerDelegate {
         }
         
         // Snap to vertical center, if needed
-        if let centerGuideline = verticalGuidelines.first(
+        if let centerGuideline = panelsVerticalGuidelines.first(
             where: { abs(overlayCenterX - $0.frame.midX) < Constants.Overlays.snapLimit }
         ) {
             overlayX = centerGuideline.frame.midX - (overlay.frame.width / 2)
@@ -365,12 +439,12 @@ final class MainViewController: UIViewController, UIGestureRecognizerDelegate {
         // Update overlay position
         overlay.frame.origin = CGPoint(x: overlayX, y: overlayY)
         
-        // Highlight guidelines
+        // Highlight snapped guidelines
         snappedGuidelines.forEach {
             $0.isHidden = false
             generator.impactOccurred()
         }
-        (horizontalGuidelines + verticalGuidelines)
+        allGuidelines
             .filter { !snappedGuidelines.contains($0) }
             .forEach { $0.isHidden = true }
         

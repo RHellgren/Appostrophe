@@ -14,6 +14,7 @@
 		0AA275F22BACB5B100F874DB /* Overlays_mock.json in Resources */ = {isa = PBXBuildFile; fileRef = 0AA275EF2BACB3DF00F874DB /* Overlays_mock.json */; };
 		0AA275F52BACC03D00F874DB /* OverlayImageView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0AA275F42BACC03D00F874DB /* OverlayImageView.swift */; };
 		0AA2761F2BAE048D00F874DB /* Array+Extensions.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0AA2761E2BAE048D00F874DB /* Array+Extensions.swift */; };
+		0AA276212BAE08EA00F874DB /* GuidelineView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0AA276202BAE08EA00F874DB /* GuidelineView.swift */; };
 		0AC6AC512BA8D25600506F4A /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0AC6AC502BA8D25600506F4A /* AppDelegate.swift */; };
 		0AC6AC532BA8D25600506F4A /* SceneDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0AC6AC522BA8D25600506F4A /* SceneDelegate.swift */; };
 		0AC6AC552BA8D25600506F4A /* MainViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0AC6AC542BA8D25600506F4A /* MainViewController.swift */; };
@@ -72,6 +73,7 @@
 		0AA275EF2BACB3DF00F874DB /* Overlays_mock.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = Overlays_mock.json; sourceTree = "<group>"; };
 		0AA275F42BACC03D00F874DB /* OverlayImageView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OverlayImageView.swift; sourceTree = "<group>"; };
 		0AA2761E2BAE048D00F874DB /* Array+Extensions.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = "Array+Extensions.swift"; sourceTree = "<group>"; };
+		0AA276202BAE08EA00F874DB /* GuidelineView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GuidelineView.swift; sourceTree = "<group>"; };
 		0AC6AC4D2BA8D25600506F4A /* Canvas.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Canvas.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		0AC6AC502BA8D25600506F4A /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
 		0AC6AC522BA8D25600506F4A /* SceneDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SceneDelegate.swift; sourceTree = "<group>"; };
@@ -150,6 +152,7 @@
 			children = (
 				0AC6AC542BA8D25600506F4A /* MainViewController.swift */,
 				0AA275F42BACC03D00F874DB /* OverlayImageView.swift */,
+				0AA276202BAE08EA00F874DB /* GuidelineView.swift */,
 			);
 			path = MainViewController;
 			sourceTree = "<group>";
@@ -402,6 +405,7 @@
 				0AC6AC512BA8D25600506F4A /* AppDelegate.swift in Sources */,
 				0AC6AC882BAB85EF00506F4A /* OverlaysCollectionCell.swift in Sources */,
 				0AC6AC532BA8D25600506F4A /* SceneDelegate.swift in Sources */,
+				0AA276212BAE08EA00F874DB /* GuidelineView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
