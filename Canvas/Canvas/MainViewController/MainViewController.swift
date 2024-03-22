@@ -23,16 +23,39 @@ final class MainViewController: UIViewController, UIGestureRecognizerDelegate {
         return view
     }()
     private lazy var panels: [UIView] = {
-        let panels = [
-            UIView(),
-            UIView(),
-            UIView()
-        ]
+        var panels: [UIView] = []
+        for _ in 0..<Constants.Panels.count {
+            panels.append(UIView())
+        }
         panels.forEach {
             $0.translatesAutoresizingMaskIntoConstraints = false
             $0.backgroundColor = Constants.Panels.backgroundColor
         }
         return panels
+    }()
+    private lazy var horizontalGuidelines: [UIView] = {
+        let lines = [
+            UIView(),// Top
+            UIView(),// Center
+            UIView()// Bottom
+        ]
+        lines.forEach {
+            $0.translatesAutoresizingMaskIntoConstraints = false
+            $0.backgroundColor = Constants.Guidelines.backgroundColor
+        }
+        return lines
+    }()
+    private lazy var verticalGuidelines: [UIView] = {
+        // Each Panel has a leading, center and trailing guideline
+        var lines: [UIView] = []
+        for _ in 0..<(Constants.Panels.count * 3) {
+            lines.append(UIView())
+        }
+        lines.forEach {
+            $0.translatesAutoresizingMaskIntoConstraints = false
+            $0.backgroundColor = Constants.Guidelines.backgroundColor
+        }
+        return lines
     }()
     private lazy var addButton: UIButton = {
         let button = UIButton()
@@ -78,6 +101,13 @@ final class MainViewController: UIViewController, UIGestureRecognizerDelegate {
         view.addSubview(addButton)
         scrollView.addSubview(contentView)
         panels.forEach { contentView.addSubview($0) }
+        horizontalGuidelines.forEach { contentView.addSubview($0) }
+        verticalGuidelines
+            .chunked(into: Constants.Panels.count)
+            .enumerated()
+            .forEach { (index, chunk) in
+                chunk.forEach { panels[safe: index]?.addSubview($0) }
+            }
     }
     
     private func makeInteractions() {
@@ -86,19 +116,10 @@ final class MainViewController: UIViewController, UIGestureRecognizerDelegate {
     }
     
     private func makeConstraints() {
-        var panelConstraints: [NSLayoutConstraint] = []
-        panels.forEach {
-            panelConstraints.append($0.widthAnchor.constraint(
-                equalToConstant: Constants.Panels.width))
-            panelConstraints.append($0.heightAnchor.constraint(
-                equalTo: contentView.heightAnchor))
-            panelConstraints.append($0.topAnchor.constraint(
-                equalTo: contentView.topAnchor))
-            panelConstraints.append($0.bottomAnchor.constraint(
-                equalTo: contentView.bottomAnchor))
-        }
-
-        NSLayoutConstraint.activate([
+        var constraints: [NSLayoutConstraint] = []
+        
+        // Layout scrollView
+        constraints.append(contentsOf: [
             scrollView.centerYAnchor.constraint(
                 equalTo: view.centerYAnchor),
             scrollView.leadingAnchor.constraint(
@@ -106,8 +127,11 @@ final class MainViewController: UIViewController, UIGestureRecognizerDelegate {
             scrollView.trailingAnchor.constraint(
                 equalTo: view.trailingAnchor),
             scrollView.heightAnchor.constraint(
-                equalToConstant: Constants.Panels.height),
-            
+                equalToConstant: Constants.Panels.height)
+        ])
+        
+        // Layout contentView
+        constraints.append(contentsOf: [
             contentView.topAnchor.constraint(
                 equalTo: scrollView.topAnchor),
             contentView.bottomAnchor.constraint(
@@ -118,7 +142,10 @@ final class MainViewController: UIViewController, UIGestureRecognizerDelegate {
                 equalTo: scrollView.trailingAnchor),
             contentView.heightAnchor.constraint(
                 equalTo: scrollView.heightAnchor),
-            
+        ])
+        
+        // Layout panels
+        constraints.append(contentsOf: [
             panels[0].leadingAnchor.constraint(
                 equalTo: contentView.leadingAnchor),
             panels[1].leadingAnchor.constraint(
@@ -129,7 +156,60 @@ final class MainViewController: UIViewController, UIGestureRecognizerDelegate {
                 constant: Constants.Panels.spacing),
             panels[2].trailingAnchor.constraint(
                 equalTo: contentView.trailingAnchor),
-            
+        ] + panels.map {[
+            $0.widthAnchor.constraint(
+                equalToConstant: Constants.Panels.width),
+            $0.heightAnchor.constraint(
+                equalTo: contentView.heightAnchor),
+            $0.topAnchor.constraint(
+                equalTo: contentView.topAnchor),
+            $0.bottomAnchor.constraint(
+                equalTo: contentView.bottomAnchor)
+        ]}.reduce([], +))
+        
+        // Layout horizontalGuidelines
+        constraints.append(contentsOf: [
+            horizontalGuidelines[0].topAnchor.constraint(
+                equalTo: contentView.topAnchor),
+            horizontalGuidelines[1].centerYAnchor.constraint(
+                equalTo: contentView.centerYAnchor),
+            horizontalGuidelines[2].bottomAnchor.constraint(
+                equalTo: contentView.bottomAnchor),
+        ] + horizontalGuidelines.map {[
+            $0.leadingAnchor.constraint(
+                equalTo: contentView.leadingAnchor),
+            $0.trailingAnchor.constraint(
+                equalTo: contentView.trailingAnchor),
+            $0.heightAnchor.constraint(
+                equalToConstant: Constants.Guidelines.lineHeight)
+        ]}.reduce([], +))
+        
+        // Layout verticalGuidelines
+        constraints.append(contentsOf: verticalGuidelines
+            .map {[
+                $0.topAnchor.constraint(
+                    equalTo: contentView.topAnchor),
+                $0.bottomAnchor.constraint(
+                    equalTo: contentView.bottomAnchor),
+                $0.widthAnchor.constraint(
+                    equalToConstant: Constants.Guidelines.lineHeight)
+            ]}.reduce([], +))
+        verticalGuidelines
+            .chunked(into: Constants.Panels.count)
+            .enumerated()
+            .forEach { (index, chunk) in
+                constraints.append(contentsOf: [
+                    chunk[0].leadingAnchor.constraint(
+                        equalTo: panels[index].leadingAnchor),
+                    chunk[1].centerXAnchor.constraint(
+                        equalTo: panels[index].centerXAnchor),
+                    chunk[2].trailingAnchor.constraint(
+                        equalTo: panels[index].trailingAnchor)
+                ])
+            }
+        
+        // Layout addButton
+        constraints.append(contentsOf: [
             addButton.centerXAnchor.constraint(
                 equalTo: view.centerXAnchor),
             addButton.bottomAnchor.constraint(
@@ -138,11 +218,17 @@ final class MainViewController: UIViewController, UIGestureRecognizerDelegate {
                 equalToConstant: Constants.Button.width),
             addButton.heightAnchor.constraint(
                 equalToConstant: Constants.Button.height)
-        ] + panelConstraints)
+        ])
+        
+        NSLayoutConstraint.activate(constraints)
+        horizontalGuidelines.forEach { view.bringSubviewToFront($0) }
+        verticalGuidelines.forEach { view.bringSubviewToFront($0) }
     }
     
     private func makeStyle() {
         view.backgroundColor = Constants.backgroundColor
+        horizontalGuidelines.forEach { $0.isHidden = true }
+        verticalGuidelines.forEach { $0.isHidden = true }
     }
     
     // MARK: - Actions
@@ -210,10 +296,15 @@ extension MainViewController {
         static let screenCenter = UIScreen.main.bounds.width / 2
         
         struct Panels {
+            static let count = 3
             static let width: CGFloat = 250
             static let height: CGFloat = 250
             static let spacing: CGFloat = 1
             static let backgroundColor: UIColor = .white
+        }
+        struct Guidelines {
+            static let backgroundColor: UIColor = .yellow
+            static let lineHeight: CGFloat = 1
         }
         struct Button {
             static let width: CGFloat = 200
@@ -225,6 +316,7 @@ extension MainViewController {
         }
         struct Overlays {
             static let size = CGSize(width: 100, height: 50)
+            static let snapLimit: CGFloat = 20
         }
     }
 }
